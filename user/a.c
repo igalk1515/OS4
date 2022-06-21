@@ -10,21 +10,25 @@
 
 /* Sanity test for task 1*/
 void
-task2_test(void){
+test2(void){
     int fd;
     char data[1024];
 
     // fills the data array with 7s
     memset(data, 7, 1024);
-    fd = open("sanity_check_file", O_CREATE | O_RDWR);
+    fd = open("file_test", O_CREATE | O_RDWR);
     for(int i = 0; i < 1024*10; i++){
         write(fd, data, sizeof(data));
-        if (i == 11)
+        if (i == 10)
             printf("Finished writing 12KB (direct)\n");
-        if (i == 267)
+        if (i == 268)
             printf("Finished writing 268KB (single direct)\n");
+        if (i!=0 && i%1024 == 0)
+            printf("Finished writing %dM\n",(i/1024));
+        
     }
     printf("Finished writing 10MB\ntest finished\n");
+    close(fd);
 }
 
 void
@@ -39,8 +43,7 @@ task3_test(void){
 
 
 int main(int argc, char* argv[]){
-    printf("Sanity Test - Task 2\n");
-    task2_test();
+    test2();
     //task3_test();
 
     exit(1);
