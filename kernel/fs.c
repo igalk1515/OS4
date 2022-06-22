@@ -674,8 +674,10 @@ skipelem(char *path, char *name)
 // If parent != 0, return the inode for the parent and copy the final
 // path element into name, which must have room for DIRSIZ bytes.
 // Must be called inside a transaction since it calls iput().
+//-----------------------------------------------------------------------------------------
 static struct inode*
-namex(char *path, int nameiparent, char *name)
+namex(char *path, int nameiparent, char *name,int count)
+//-----------------------------------------------------------------------------------------
 {
   struct inode *ip, *next;
 
@@ -686,6 +688,11 @@ namex(char *path, int nameiparent, char *name)
 
   while((path = skipelem(path, name)) != 0){
     ilock(ip);
+//-----------------------------------------------------------------------------------------
+    if(!(ip=dereferencelink(ip,&count))){
+      return 0;
+    }
+//-----------------------------------------------------------------------------------------
     if(ip->type != T_DIR){
       iunlockput(ip);
       return 0;
@@ -713,11 +720,63 @@ struct inode*
 namei(char *path)
 {
   char name[DIRSIZ];
-  return namex(path, 0, name);
+//-----------------------------------------------------------------------------------------
+  return namex(path, 0, name, MAXDEREF);
+//-----------------------------------------------------------------------------------------
+
 }
 
 struct inode*
 nameiparent(char *path, char *name)
 {
-  return namex(path, 1, name);
+  return namex(path, 1, name,MAXDEREF);
 }
+//-----------------------------------------------------------------------------------------
+int
+readlink(const char* pathname, char* buf, int bufsize){
+  char name[DIRSIZ];
+  int ans;
+  struct inode* ip = namex((char*)(pathname), 0, name, MAXDEREF);
+  if(!ip){
+    return -1;
+  }
+  
+  ilock(ip);
+  ans = getlinktarget(ip, buf, bufsize);
+  iunlock(ip);
+  
+  return ans;
+}
+
+struct inode*
+dereferencelink(struct inode* ip, int* dereference){
+  struct inode* ans = ip;
+  char buffer[256];
+  char name[DIRSIZ];
+  while(ans->type == T_SYMLINK){
+    *dereference = *dereference - 1;
+    if(!(*dereference)){
+      iunlockput(ans);
+      return 0;
+    }
+    getlinktarget(ans, buffer, ans->size);
+    iunlockput(ans);
+    ans = namex(buffer, 0, name, *dereference);
+    if(!ans){
+      return 0;
+    }
+    ilock(ans);
+  }
+  return ans;
+}
+
+int
+getlinktarget(struct inode* ip, char* buf, int bufsize){
+  if(ip->type != T_SYMLINK){
+    iunlock(ip);
+    return -1;
+  }
+  readi(ip,0, (uint64)buf, 0, bufsize);
+  return 0;
+}
+//-----------------------------------------------------------------------------------------

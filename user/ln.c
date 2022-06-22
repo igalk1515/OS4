@@ -5,11 +5,27 @@
 int
 main(int argc, char *argv[])
 {
-  if(argc != 3){
+
+  if(argc == 3){
+  if(link(argv[1], argv[2]) < 0)
+    fprintf(2, "link %s %s: failed\n", argv[1], argv[2]);
+  exit(0);
+  }
+  else if(argc == 4){
+    if(strcmp(argv[1],"-s")){
+    fprintf(2, "syntax erorr\n");
+    exit(1);
+    }
+    else{
+      if (symlink(argv[2], argv[3]) < 0){
+        fprintf(2, "symlink faild\n");
+      }
+
+    }
+  }
+  else{
     fprintf(2, "Usage: ln old new\n");
     exit(1);
   }
-  if(link(argv[1], argv[2]) < 0)
-    fprintf(2, "link %s %s: failed\n", argv[1], argv[2]);
   exit(0);
 }

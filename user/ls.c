@@ -2,6 +2,12 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 #include "kernel/fs.h"
+#include "kernel/fcntl.h"
+
+int dflag = 0;
+
+
+
 
 char*
 fmtname(char *path)
@@ -42,12 +48,27 @@ ls(char *path)
   }
 
   switch(st.type){
+//---------------------------------------------------------------------------
+    case T_SYMLINK:
+    if(dflag){
+      printf("print on debug %d", dflag);
+    }
+    read(fd, buf, sizeof(buf));
+    printf("%s->", fmtname(path));
+    ls(buf);
+//---------------------------------------------------------------------------
   case T_FILE:
+    if(dflag){
+      printf("print on debug %d", dflag);
+    }
     printf("%s %d %d %l\n", fmtname(path), st.type, st.ino, st.size);
     break;
 
   case T_DIR:
     if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
+          if(dflag){
+      printf("print on debug %d", dflag);
+    }
       printf("ls: path too long\n");
       break;
     }
@@ -63,7 +84,20 @@ ls(char *path)
         printf("ls: cannot stat %s\n", buf);
         continue;
       }
+//---------------------------------------------------------------------------
+      if(st.type == T_SYMLINK){
+      if(dflag){
+      printf("print on debug %d", dflag);
+      }
+        char t [256];
+        readlink(buf, t, 256);
+        printf("%s->%s %d %d %d\n", fmtname(buf),t, st.type, st.ino, st.size);
+      }
+//---------------------------------------------------------------------------
+
+      else{
       printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
+      }
     }
     break;
   }

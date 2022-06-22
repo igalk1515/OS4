@@ -11,3 +11,6 @@
 #define NBUF         (MAXOPBLOCKS*3)  // size of disk block cache
 #define FSSIZE       131072  // size of file system in blocks (2^17)
 #define MAXPATH      128   // maximum file path name
+// -------------------------------------------------------------------------------
+#define MAXDEREF      31   // maximum derefence allowed
+// -------------------------------------------------------------------------------
