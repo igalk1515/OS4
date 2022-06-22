@@ -512,28 +512,32 @@ sys_pipe(void)
 uint64
 sys_readlink(void)  //TODO
 {
-  char pathname[MAXPATH];
-  
-  int bufsize;
+  char pathname[MAXPATH];//reoresnt a path to a symbolic link file
+  int bufsize;//the size of the buf buffer
   uint64 addr;
   if (argstr(0, pathname, MAXPATH) < 0)
     return -1;
+// retrieve integer arguments
   if(argint(2, (&bufsize)) < 0){
     return -1;
   }
+  char buffer[bufsize];//A pointer to a buffer into which the content of pathname symbolic link will be read
   if(argaddr(1,&addr) < 0){
     return -1;
   }
   struct inode *ip;
   begin_op();
+//follow a pathname until a terminal point is found
   if ((ip = namei(pathname)) == 0) //check if path exist
   {
     end_op();
     return -1;
   }
+// Lock the given inode.
   ilock(ip);
   if (ip->type != T_SYMLINK)
   {
+// Unlock the given inode.
     iunlock(ip);
     end_op();
     return -1;
@@ -544,7 +548,7 @@ sys_readlink(void)  //TODO
     end_op();
     return -1;
   }
-  char buffer[bufsize];
+  
   int res = readi(ip, 0, (uint64)buffer, 0, bufsize);
   struct proc *p = myproc();
 
@@ -568,16 +572,26 @@ uint64
 sys_symlink(void)//TODO
 {
   char target[128];
+//fills the first sizeof(target) bytes of the memory area
+// pointed to by target with the constant byte 0.
   memset(target, 0, sizeof(target));
   char path[128];
-  //argstr Returns string length
+// Fetch the nth word-sized system call argument as a string pointer.
+// Check that the pointer is valid and the string is nul-terminated.
+//argstr Returns string length
+// retrieve string arguments
   if((argstr(0, target, 128) < 0 )|| (argstr(1, path, 128)) < 0){
     return -1;
   }
   
   struct inode *ip;
-
+// A system call should call begin_op()/end_op() to mark
+// its start and end. Usually begin_op() just increments
+// the count of in-progress FS system calls and returns.
+// But if it thinks the log is close to running out, it
+// sleeps until the last outstanding end_op() commits.
   begin_op();
+// Create the path new as a link to the same inode as old.
   if((ip = create(path, T_SYMLINK, 0, 0)) == 0){
     end_op();
     return -1;
