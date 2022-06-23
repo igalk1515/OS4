@@ -31,7 +31,7 @@ exec(char *path, char **argv)
   }
   ilock(ip);
 //-------------------------------------------------------------------------
-  struct inode* dInode = dereferencelink(ip, &deref);
+  struct inode* dInode = changeLink(ip, &deref);
   if (ip != dInode){
     iunlock(ip);
     ip = dInode;

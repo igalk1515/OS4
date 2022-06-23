@@ -25,6 +25,7 @@
 // there should be one superblock per disk device, but we run with
 // only one device
 struct superblock sb; 
+int dbugFlag = 0;
 
 // Read the super block.
 static void
@@ -676,20 +677,36 @@ skipelem(char *path, char *name)
 // Must be called inside a transaction since it calls iput().
 //-----------------------------------------------------------------------------------------
 static struct inode*
+
 namex(char *path, int nameiparent, char *name,int count)
 //-----------------------------------------------------------------------------------------
 {
+  if(dbugFlag==1){
+  printf("namex %d\n",nameiparent);
+  }
   struct inode *ip, *next;
 
-  if(*path == '/')
+  if(*path == '/'){
+  if(dbugFlag==1){
+    printf("namex path == '/'\n");
+  }
+  // Find the inode with number inum on device dev
+  // and return the in-memory copy.
     ip = iget(ROOTDEV, ROOTINO);
-  else
+  if(dbugFlag==1){
+    printf("iget work with no panic\n");
+  }
+  }
+
+  else{
+
     ip = idup(myproc()->cwd);
+  }
 
   while((path = skipelem(path, name)) != 0){
     ilock(ip);
 //-----------------------------------------------------------------------------------------
-    if(!(ip=dereferencelink(ip,&count))){
+    if(!(ip=changeLink(ip,&count))){
       return 0;
     }
 //-----------------------------------------------------------------------------------------
@@ -725,10 +742,10 @@ namei(char *path)
 //-----------------------------------------------------------------------------------------
 
 }
-
 struct inode*
 nameiparent(char *path, char *name)
 {
+  // Look up and return the inode for a path name.
   return namex(path, 1, name,MAXDEREF);
 }
 //-----------------------------------------------------------------------------------------
@@ -736,20 +753,21 @@ int
 readlink(const char* pathname, char* buf, int bufsize){
   char name[DIRSIZ];
   int ans;
+  // Look up and return the inode for a path name.
   struct inode* ip = namex((char*)(pathname), 0, name, MAXDEREF);
   if(!ip){
     return -1;
   }
   
   ilock(ip);
-  ans = getlinktarget(ip, buf, bufsize);
+  ans = getLink(ip, buf, bufsize);
   iunlock(ip);
   
   return ans;
 }
 
 struct inode*
-dereferencelink(struct inode* ip, int* dereference){
+changeLink(struct inode* ip, int* dereference){
   struct inode* ans = ip;
   char buffer[256];
   char name[DIRSIZ];
@@ -759,8 +777,9 @@ dereferencelink(struct inode* ip, int* dereference){
       iunlockput(ans);
       return 0;
     }
-    getlinktarget(ans, buffer, ans->size);
+    getLink(ans, buffer, ans->size);
     iunlockput(ans);
+    // Look up and return the inode for a path name.
     ans = namex(buffer, 0, name, *dereference);
     if(!ans){
       return 0;
@@ -771,7 +790,7 @@ dereferencelink(struct inode* ip, int* dereference){
 }
 
 int
-getlinktarget(struct inode* ip, char* buf, int bufsize){
+getLink(struct inode* ip, char* buf, int bufsize){
   if(ip->type != T_SYMLINK){
     iunlock(ip);
     return -1;

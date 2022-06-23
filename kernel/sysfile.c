@@ -316,7 +316,7 @@ sys_open(void)
 //-----------------------------------------------------------------------------
     if ((ip->type == T_SYMLINK) && 
     (omode != O_NO_LINK) && 
-    ((ip = dereferencelink(ip, &deref)) == 0)){
+    ((ip = changeLink(ip, &deref)) == 0)){
         end_op();
         return -1;
     }
@@ -418,7 +418,7 @@ sys_chdir(void)
   }
   ilock(ip);
 //---------------------------------------------------------------------------
-  struct inode* dInode = dereferencelink(ip, &deref);
+  struct inode* dInode = changeLink(ip, &deref);
   if (ip != dInode){
     iunlock(ip);
     ip = dInode;
@@ -548,7 +548,7 @@ sys_readlink(void)  //TODO
     end_op();
     return -1;
   }
-  
+  // Read data from inode
   int res = readi(ip, 0, (uint64)buffer, 0, bufsize);
   struct proc *p = myproc();
 
