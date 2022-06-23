@@ -56,7 +56,7 @@ void            itrunc(struct inode*);
 //--------------------------------------------------------------------------------
 int             readlink(const char* , char* , int );
 struct inode*   changeLink(struct inode*, int*);
-int             getLink(struct inode*, char*, int);
+
 //--------------------------------------------------------------------------------
 
 // ramdisk.c

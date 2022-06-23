@@ -4,11 +4,6 @@
 #include "kernel/fs.h"
 #include "kernel/fcntl.h"
 
-int dflag = 0;
-
-
-
-
 char*
 fmtname(char *path)
 {
@@ -35,40 +30,28 @@ ls(char *path)
   int fd;
   struct dirent de;
   struct stat st;
-
-  if((fd = open(path, 0)) < 0){
+  if((fd = open(path, O_NO_LINK)) < 0){
     fprintf(2, "ls: cannot open %s\n", path);
     return;
   }
-
   if(fstat(fd, &st) < 0){
     fprintf(2, "ls: cannot stat %s\n", path);
     close(fd);
     return;
   }
-
+  struct stat target_st;
   switch(st.type){
-//---------------------------------------------------------------------------
-    case T_SYMLINK:
-    if(dflag){
-      printf("print on debug %d", dflag);
-    }
-    read(fd, buf, sizeof(buf));
-    printf("%s->", fmtname(path));
-    ls(buf);
-//---------------------------------------------------------------------------
+  case T_SYMLINK:
+    readlink(path, buf, 512);
+    stat(buf, &target_st);
+    printf("%s -> %s %d %d 0\n", fmtname(path), buf, target_st.type,st.ino);
+    break;
   case T_FILE:
-    if(dflag){
-      printf("print on debug %d", dflag);
-    }
     printf("%s %d %d %l\n", fmtname(path), st.type, st.ino, st.size);
     break;
 
   case T_DIR:
     if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
-          if(dflag){
-      printf("print on debug %d", dflag);
-    }
       printf("ls: path too long\n");
       break;
     }
@@ -84,20 +67,14 @@ ls(char *path)
         printf("ls: cannot stat %s\n", buf);
         continue;
       }
-//---------------------------------------------------------------------------
-      if(st.type == T_SYMLINK){
-      if(dflag){
-      printf("print on debug %d", dflag);
+      if (st.type == T_SYMLINK){
+        char target[256];
+        readlink(buf, target, 256);
+        stat(target, &target_st);
+        printf("%s -> %s %d %d 0\n", fmtname(buf),target, target_st.type, st.ino);
       }
-        char t [256];
-        readlink(buf, t, 256);
-        printf("%s->%s %d %d %d\n", fmtname(buf),t, st.type, st.ino, st.size);
-      }
-//---------------------------------------------------------------------------
-
-      else{
-      printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
-      }
+      else
+        printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
     }
     break;
   }

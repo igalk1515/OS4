@@ -699,7 +699,8 @@ namex(char *path, int nameiparent, char *name,int count)
   }
 
   else{
-
+    // Increment reference count for ip
+    // Returns ip to enable ip = idup(ip1) idiom.
     ip = idup(myproc()->cwd);
   }
 
@@ -707,6 +708,9 @@ namex(char *path, int nameiparent, char *name,int count)
     ilock(ip);
 //-----------------------------------------------------------------------------------------
     if(!(ip=changeLink(ip,&count))){
+      if(dbugFlag==1){
+        printf("could not change link\n");
+      }
       return 0;
     }
 //-----------------------------------------------------------------------------------------
@@ -752,7 +756,7 @@ nameiparent(char *path, char *name)
 int
 readlink(const char* pathname, char* buf, int bufsize){
   char name[DIRSIZ];
-  int ans;
+
   // Look up and return the inode for a path name.
   struct inode* ip = namex((char*)(pathname), 0, name, MAXDEREF);
   if(!ip){
@@ -760,10 +764,19 @@ readlink(const char* pathname, char* buf, int bufsize){
   }
   
   ilock(ip);
-  ans = getLink(ip, buf, bufsize);
+  //------------------------------------------------
+  if(ip->type != T_SYMLINK){
+    iunlock(ip);
+    return -1;
+  }
+  else{
+  // Read data from inode.
+  readi(ip,0, (uint64)buf, 0, bufsize);
   iunlock(ip);
-  
-  return ans;
+  return 0;
+  }
+
+  //------------------------------------------------
 }
 
 struct inode*
@@ -777,7 +790,18 @@ changeLink(struct inode* ip, int* dereference){
       iunlockput(ans);
       return 0;
     }
-    getLink(ans, buffer, ans->size);
+    // -----------------------------------------
+    if(ans->type != T_SYMLINK){
+      iunlock(ip);
+      
+    }
+    // Read data from inode.
+    readi(ans,0, (uint64)buffer, 0, ans->size);
+    
+
+    // -----------------------------------------
+    
+    
     iunlockput(ans);
     // Look up and return the inode for a path name.
     ans = namex(buffer, 0, name, *dereference);
@@ -789,13 +813,5 @@ changeLink(struct inode* ip, int* dereference){
   return ans;
 }
 
-int
-getLink(struct inode* ip, char* buf, int bufsize){
-  if(ip->type != T_SYMLINK){
-    iunlock(ip);
-    return -1;
-  }
-  readi(ip,0, (uint64)buf, 0, bufsize);
-  return 0;
-}
+
 //-----------------------------------------------------------------------------------------

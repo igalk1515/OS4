@@ -24,7 +24,7 @@ exec(char *path, char **argv)
   int deref = MAXDEREF;
 //-------------------------------------------------------------------------
   begin_op();
-
+  // Look up and return the inode for a path name.
   if((ip = namei(path)) == 0){
     end_op();
     return -1;

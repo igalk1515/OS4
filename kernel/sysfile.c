@@ -513,8 +513,8 @@ uint64
 sys_readlink(void)  //TODO
 {
   char pathname[MAXPATH];//reoresnt a path to a symbolic link file
-  int bufsize;//the size of the buf buffer
   uint64 addr;
+  int bufsize;//the size of the buf buffer
   if (argstr(0, pathname, MAXPATH) < 0)
     return -1;
 // retrieve integer arguments
@@ -549,7 +549,7 @@ sys_readlink(void)  //TODO
     return -1;
   }
   // Read data from inode
-  int res = readi(ip, 0, (uint64)buffer, 0, bufsize);
+  int ans = readi(ip, 0, (uint64)buffer, 0, bufsize);
   struct proc *p = myproc();
 
   if (copyout(p->pagetable, addr, buffer, bufsize) < 0)
@@ -562,8 +562,7 @@ sys_readlink(void)  //TODO
   iunlock(ip);
 
   end_op();
-  return res;
-  return 0;
+  return ans;//need to be 0
 }
 
 
